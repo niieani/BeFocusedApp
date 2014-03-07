@@ -1,0 +1,28 @@
+{
+    "name": "BeFocused",
+    "description": "Stay focused with Asana",
+    "version": "1.0.0",
+    "manifest_version": 2,
+    "minimum_chrome_version": "30",
+    "app": {
+        "background": {
+            "persistent": true,
+            "scripts": [
+                "jquery-1.11.0.min.js",
+                "asana.js",
+                "api_bridge.js",
+                "extension_server.js",
+                "server_model.js",
+                "options.js",
+                "background.js"
+            ]
+        }
+    },
+    "permissions":
+        [
+            "alwaysOnTopWindows",
+            "storage",
+            "*://*.asana.com/*",
+            "*://use.typekit.net/*"
+        ]
+}

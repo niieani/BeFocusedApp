@@ -1,0 +1,75 @@
+<html>
+<!--
+This page is no longer in use.
+
+To enable it, simply add the following line to the top level dict
+in manifest.json:
+
+  "options_page": "options.html",
+
+-->
+<head><title>Asana Options</title>
+<script type="text/javascript" src="asana.js"></script>
+<script type="text/javascript" src="options.js"></script>
+<script type="text/javascript" src="server_model.js"></script>
+<script type="text/javascript" src="api_bridge.js"></script>
+<script type="text/javascript" src="jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="jquery-ui-1.8.10.custom.min.js"></script>
+<link rel="stylesheet" href="options.css"/>
+<script type="text/javascript" src="options_page.js"></script>
+</head>
+
+<body>
+<table id="layout">
+  <tr><td colspan="3" class="v-spacer"></td></tr>
+  <tr>
+  <td class="h-spacer"></td>
+  <td id="options">
+
+  <table class="form">
+    <tr>
+      <td class="field-name">Asana Host:</td>
+      <td class="field-value">
+        <input id="asana_host_port_input" type="text" oninput="onChange();">
+      </td>
+    </tr>
+    <tr>
+      <td class="field-name"></td>
+      <td class="field-notes">
+        The hostname for the Asana application. You should leave this set to
+        its default value.
+      </td>
+    </tr>
+
+    <tr><td colspan="2" class="field-spacer"></td></tr>
+
+    <tr>
+      <td class="field-name"></td>
+      <td class="field-value">
+        <div id="save_button" class="button primary-button disabled">
+          <span class="button-text">Save</span>
+        </div>
+        <div id="reset_button" class="button primary-button enabled">
+          <span class="button-text">Reset</span>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="field-name"></td>
+      <td class="field-value">
+        <div id="status"></div>
+      </td>
+    </tr>
+  </table>
+
+  </td>
+  <td class="h-spacer"></td>
+
+</tr></table>
+
+</body>
+
+<!-- Depends on all elements being loaded, so we include at the end -->
+<script type="text/javascript" src="options_init.js"></script>
+
+</html>
