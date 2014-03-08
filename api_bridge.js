@@ -41,8 +41,15 @@ Asana.ApiBridge = {
    * @return {String} The base URL to use for API requests.
    */
   baseApiUrl: function(opt_options) {
-    var options = opt_options || Asana.Options.loadOptions();
+    var options = opt_options || Asana.Options.loadedOptions; //Asana.Options.loadOptions();
     return 'https://' + options.asana_host_port + '/api/' + this.API_VERSION;
+  },
+
+  authHeader: function() {
+    var options = Asana.Options.loadedOptions; //Asana.Options.loadOptions();
+    var tok = options.asana_api_key + ':';
+    var hash = btoa(tok);
+    return 'Basic ' + hash;
   },
 
   /**
@@ -140,6 +147,11 @@ Asana.ApiBridge = {
           "X-Requested-With": "XMLHttpRequest"
         },
         accept: "application/json",
+        // CHANGE
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('Authorization', me.authHeader());
+        },
+        // CHANGE
         success: function(data, status, xhr) {
           if (http_method === "GET") {
             me._writeCache(path, data, new Date());
@@ -154,6 +166,7 @@ Asana.ApiBridge = {
             var response;
             try {
               response = $.parseJSON(xhr.responseText);
+                console.log(response);
             } catch (e) {
               response = {
                 errors: [{message: "Could not parse response from server" }]
@@ -203,44 +216,17 @@ Asana.ApiBridge = {
                       '\nFailed to fetch blob... ' +
                           'See https://code.google.com/p/chromium/issues/detail?id=295829');
               }
-
-
-              /*
-              var xhr = new XMLHttpRequest();
-              xhr.open('GET', params.fileObjectURL, false);
-              xhr.responseType = 'blob';
-              xhr.send(null);
-              console.log("status is " + xhr.status);
-              if (xhr.status != 200) {
-                  console.log('Failed to load blob:',
-                      params.fileObjectURL,
-                      xhr.status, xhr.statusText);
-              }
-//              xhr.response
-//              xhr.onload = function()
-//              {
-*/
               var formData = new FormData();
 //              formData.append(params.param, this.response, params.filename);
               formData.append(params.param, blob, params.fileName);
 
               attrs.data = formData;
               attrs.contentType = false;
-
-//                  console.log(params.fileObjectURL);
-//              console.log(this.response);
-//              console.log(xhr.response);
-                  //console.log(this.responseText);
-//              console.log("Will attach (KBs): " + xhr.response.size + " of " + xhr.responseType);
-//              console.log("Will attach (KBs): " + this.response.size + " of " + this.response.type);
-//              }
-//              xhr.send();
               // cleanup
               window.URL.revokeObjectURL(params.fileObjectURL);
           }
       }
       $.ajax(attrs);
-//    });
   },
 
   _readCache: function(path, date) {

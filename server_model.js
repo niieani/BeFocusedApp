@@ -8,7 +8,8 @@
 Asana.ServerModel = {
 
   // Make requests to API to refresh cache at this interval.
-  CACHE_REFRESH_INTERVAL_MS: 15 * 60 * 1000,
+  CACHE_REFRESH_INTERVAL_MS: //15 * 1000,
+  15 * 60 * 1000,
 
   _url_to_cached_image: {},
 
@@ -29,7 +30,8 @@ Asana.ServerModel = {
    *     options {dict} See Asana.Options for details.
    */
   options: function(callback) {
-    callback(Asana.Options.loadOptions());
+      Asana.Options.loadOptions(callback);
+//    callback(Asana.Options.loadOptions());
   },
 
   /**
@@ -39,8 +41,7 @@ Asana.ServerModel = {
    * @param callback {Function()} Callback on completion.
    */
   saveOptions: function(options, callback) {
-    Asana.Options.saveOptions(options);
-    callback();
+    Asana.Options.saveOptions(options, callback);
   },
 
   /**
@@ -50,12 +51,22 @@ Asana.ServerModel = {
    *     is_logged_in {Boolean} True iff the user is logged in to Asana.
    */
   isLoggedIn: function(callback) {
+      var options = Asana.Options.loadedOptions; //Asana.Options.loadOptions();
+
+      if (!options.asana_api_key || options.asana_api_key == "")
+        callback(false);
+      else
+        callback(true);
+    // IF USING COOKIES
+    /*
     chrome.cookies.get({
       url: Asana.ApiBridge.baseApiUrl(),
       name: 'ticket'
     }, function(cookie) {
       callback(!!(cookie && cookie.value));
     });
+    */
+    // END IF USING COOKIES
   },
 
   /**
@@ -67,7 +78,7 @@ Asana.ServerModel = {
   taskViewUrl: function(task, callback) {
     // We don't know what pot to view it in so we just use the task ID
     // and Asana will choose a suitable default.
-    var options = Asana.Options.loadOptions();
+    var options = Asana.Options.loadedOptions; //Asana.Options.loadOptions();
     var pot_id = task.id;
     var url = 'https://' + options.asana_host_port + '/0/' + pot_id + '/' + task.id;
     callback(url);
@@ -136,6 +147,23 @@ Asana.ServerModel = {
             }, options);
     },
 
+
+    /**
+     * Requests the set of tasks in a workspace.
+     *
+     * @param callback {Function(projects)} Callback on success.
+     *     projects {dict[]}
+     */
+    tasks: function(workspace_id, assignee_id, callback, errback, options) {
+        var self = this;
+        Asana.ApiBridge.request(
+            "GET", "/workspaces/" + workspace_id + "/tasks",
+            { opt_fields: "id,name,completed,assignee_status", assignee: assignee_id },
+            function(response) {
+                self._makeCallback(response, callback, errback);
+            }, options);
+    },
+
   /**
    * Requests the user record for the logged-in user.
    *
@@ -166,6 +194,18 @@ Asana.ServerModel = {
           self._makeCallback(response, callback, errback);
         });
   },
+
+
+    updateTask: function(task_id, task, callback, errback) {
+        var self = this;
+        Asana.ApiBridge.request(
+            "PUT",
+            "/tasks/" + task_id,
+            task,
+            function(response) {
+                self._makeCallback(response, callback, errback);
+            });
+    },
 
     createTag: function(workspace_id, tag, callback, errback) {
         var self = this;
@@ -254,6 +294,7 @@ Asana.ServerModel = {
    */
   startPrimingCache: function() {
     var me = this;
+    clearInterval(me._cache_refresh_interval);
     me._cache_refresh_interval = setInterval(function() {
       me.refreshCache();
     }, me.CACHE_REFRESH_INTERVAL_MS);
@@ -262,49 +303,75 @@ Asana.ServerModel = {
 
   refreshCache: function() {
     var me = this;
-    // Fetch logged-in user.
-    me.me(function(user) {
-      if (!user.errors) {
-        // Fetch list of workspaces.
-        me.workspaces(function(workspaces) {
-          if (!workspaces.errors) {
-            var i = 0;
-            // Fetch users in each workspace.
-            var fetchUsers = function() {
-              me.users(workspaces[i].id, function(users) {
-                // Prefetch images too
-                users.forEach(function(user) {
-                  me._cacheUserPhoto(user);
-                });
-                if (++i < workspaces.length) {
-                  fetchUsers();
-                }
-              }, null, { miss_cache: true });
-            };
-            fetchUsers();
-
-
-              // Fetch projects in each workspace.
-              var fetchProjects = function() {
-                  me.projects(workspaces[i].id, function(projects) {
-
+      if (Asana.Options.loadedOptions.asana_api_key)
+      {
+        // Fetch logged-in user.
+        me.me(function(user) {
+          if (!user.errors) {
+            // Fetch list of workspaces.
+            me.workspaces(function(workspaces) {
+              if (!workspaces.errors) {
+                  /*
+                var i = 0;
+                // Fetch users in each workspace.
+                var fetchUsers = function() {
+                  me.users(workspaces[i].id, function(users) {
+                    // Prefetch images too
+                    users.forEach(function(user) {
+                      me._cacheUserPhoto(user);
+                    });
+                    if (++i < workspaces.length) {
+                      fetchUsers();
+                    }
                   }, null, { miss_cache: true });
-              };
-              fetchProjects();
+                };
+                fetchUsers();
 
 
-              // Fetch tags in each workspace.
-              var fetchTags = function() {
-                  me.tags(workspaces[i].id, function(tags) {
+                  // Fetch projects in each workspace.
+                  var fetchProjects = function() {
+                      me.projects(workspaces[i].id, function(projects) {
 
-                  }, null, { miss_cache: true });
-              };
-              fetchTags();
+                      }, null, { miss_cache: true });
+                  };
+                  fetchProjects();
 
+
+                  // Fetch tags in each workspace.
+                  var fetchTags = function() {
+                      me.tags(workspaces[i].id, function(tags) {
+
+                      }, null, { miss_cache: true });
+                  };
+                  fetchTags();
+                    */
+              }
+            }, null, { miss_cache: true })
           }
-        }, null, { miss_cache: true })
-      }
-    }, null, { miss_cache: true });
+          /*
+            else
+          {
+              if (user.errors[0].message == "Not Authorized")
+                  Asana.Options.resetOptions(function(options){
+                      var windows = chrome.app.window.getAll();
+                      chrome.app.window.create('window.html', {
+                          'alwaysOnTop': true,
+                          'bounds': {
+                              'width': 700,
+                              'height': 200
+                          },
+                          'frame': 'none',
+                          'resizable': false,
+                          'focused': false
+                      });
+                      windows.forEach(function(window){
+                          window.close();
+                      });
+                  });
+          }*/
+        }, null, { miss_cache: true });
+
+    }
   }
 
 };

@@ -18,9 +18,11 @@ Asana.ExtensionServer = {
     chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       if (request.type === "api") {
         // Request to the API. Pass it on to the bridge.
-        Asana.ApiBridge.request(
-            request.method, request.path, request.params, sendResponse,
-            request.options || {});
+          Asana.Options.loadOptions(function(options){
+                Asana.ApiBridge.request(
+                    request.method, request.path, request.params, sendResponse,
+                    request.options || {});
+          });
         return true;  // will call sendResponse asynchronously
       }
       if (request.type === "cache-refresh") {

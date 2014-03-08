@@ -1,9 +1,10 @@
 {
-    "name": "BeFocused",
-    "description": "Stay focused with Asana",
-    "version": "1.0.0",
+    "name": "BeFocused (Asana)",
+    "description": "Stay focused with Asana, by always seeing which task are you working on.",
+    "version": "1.0.1",
+    "author": "Bazyli Brzóska",
     "manifest_version": 2,
-    "minimum_chrome_version": "30",
+    "minimum_chrome_version": "29",
     "app": {
         "background": {
             "persistent": true,
@@ -22,7 +23,6 @@
         [
             "alwaysOnTopWindows",
             "storage",
-            "*://*.asana.com/*",
-            "*://use.typekit.net/*"
+            "*://*.asana.com/*"
         ]
 }
