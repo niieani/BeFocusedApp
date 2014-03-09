@@ -4,13 +4,14 @@ Window = {
     user_id: null,
     tasks_today: null,
     _tasks_refresh_interval: null,
-    TASKS_REFRESH_INTERVAL_MS: 5 * 1000,
+    TASKS_REFRESH_INTERVAL_MS: 8 * 1000,
     current_task_id: null,
     current_task_order: null,
     update_in_progress: false,
-    update_timer: null,
+    update_timer: new Array(),
     height_size_open: null,
     height_size_closed: null,
+    name_input: null,
 
     onLoad: function() {
         var me = this;
@@ -88,8 +89,8 @@ Window = {
                         }});
                     });
 
-                    var name_input = $("#name_input");
-                    name_input.prop('disabled', true);
+                    me.name_input = $("#name_input");
+                    me.disableInput();
 
                     me.workspaces = workspaces;
                     var select = $("#workspace_select");
@@ -114,7 +115,7 @@ Window = {
                     me.onWorkspaceChanged();
 
                     select.change(function() {
-                        name_input.prop('disabled', true);
+                        me.disableInput();
                         if (select.val() !== me.options.default_workspace_id) {
                             Asana.ServerModel.logEvent({
                                 name: "ChromeExtension-ChangedWorkspace"
@@ -125,19 +126,20 @@ Window = {
 
                     var complete_button = $('#complete_button');
                     complete_button.click(function() {
-                        me.completeTask(me.current_task_id);
+                        me.completeTask(me.current_task_id, me.current_task_order);
                     });
-                    name_input.keypress(function(e) {
+                    me.name_input.keypress(function(e) {
                         if ( e.ctrlKey && ( e.which === 13 || e.which === 10 ) ) {
                             console.log( "You pressed CTRL + Enter" );
-                            me.completeTask(me.current_task_id);
+                            me.completeTask(me.current_task_id, me.current_task_order);
                         }
                         else if(e.which === 13) {
                             // create new task and select it
-                            name_input.prop('disabled', true);
+                            me.disableInput();
                             me.createEmptyTask(function(newTask){
 //                                console.log(newTask);
-                                me.setCurrent(newTask, 0);
+                                me.setCurrent(newTask, me.tasks_today.length - 1);
+                                me.name_input.focus();
                             });
 //                            alert('You pressed enter!');
                         }
@@ -145,12 +147,12 @@ Window = {
                         else if(e.which >=45 && e.which <= 90)
                         {
                             me.updateTask(me.current_task_id, {
-                                name: name_input.text()
+                                name: me.name_input.text()
                             });
                         }
                         */
                     });
-                    name_input.keydown(function(e) {
+                    me.name_input.keydown(function(e) {
                         if (e.which === 40) {
                             // down arrow
                             var newTaskOrder = me.current_task_order + 1;
@@ -168,17 +170,23 @@ Window = {
                             me.setCurrent(me.tasks_today[newTaskOrder], newTaskOrder);
                         }
                     });
-                    name_input.on('input', function() {
-                        clearInterval(me.update_timer);
-                        var nameAtTheTime = name_input.val();
+                    me.name_input.on('input', function() {
+                        var nameAtTheTime = me.name_input.val();
                         var idAtTheTime = me.current_task_id;
-                        me.update_timer = setInterval(function () {
+                        var positionAtTheTime = me.current_task_order;
+
+                        // first update locally:
+                        me.tasks_today[positionAtTheTime].name = nameAtTheTime;
+
+                        // now, if 1 second didn't pass, update remotely
+                        clearInterval(me.update_timer[idAtTheTime]);
+                        me.update_timer[idAtTheTime] = setTimeout(function () {
                             // interval function body
                             // update task
                             me.updateTask(idAtTheTime, {
                                 name: nameAtTheTime
-                            });
-                            clearInterval(me.update_timer);
+                            }, positionAtTheTime);
+                            clearTimeout(me.update_timer[idAtTheTime]);
                         }, 1000);
                     });
                 });
@@ -189,18 +197,29 @@ Window = {
 
         startPrimingTasks: function() {
             var me = this;
-            clearInterval(me._tasks_refresh_interval);
+            me.stopPrimingTasks();
+            console.log("started priming tasks");
             me._tasks_refresh_interval = setInterval(function() {
                 if (!me.update_in_progress)
                 {
                     me.fetchTasks();
                 }
             }, me.TASKS_REFRESH_INTERVAL_MS);
-            me.fetchTasks();
+            if (!me.update_in_progress)
+            {
+                me.fetchTasks();
+            }
+        },
+
+        stopPrimingTasks: function() {
+            console.log("stopped priming tasks");
+            clearInterval(me._tasks_refresh_interval);
         },
 
         fetchTasks: function() {
+            me.update_in_progress = true;
             Asana.ServerModel.tasks(me.selectedWorkspaceId(), me.user_id, function(tasks) {
+                me.update_in_progress = false;
                 // Prefetch images too
                 me.tasks_today = new Array();
                 var taskNoLongerExists = true;
@@ -241,21 +260,36 @@ Window = {
                         // TODO: create a new task ?
                     }
                 }
-            }, null, { miss_cache: true });
+                me.hideError();
+            }, function(response){
+                // on error:
+                me.update_in_progress = false;
+                me.showError(response.errors[0].message);
+            }, { miss_cache: true });
+        },
+            
+        disableInput: function()
+        {
+            me.name_input.prop('disabled', true);
+        },
+
+        enableInput: function()
+        {
+            me.name_input.prop('disabled', false);
         },
 
         setCurrent: function(current, whichInOrder)
         {
             console.log(current);
 
-            var name_input = $("#name_input");
-            var was_focused = name_input.is(":focus");
+//            var me.name_input = $("#name_input");
+            var was_focused = me.name_input.is(":focus");
 
-            name_input.val(current.name);
-            name_input.prop('disabled', false);
+            me.name_input.val(current.name);
+            me.enableInput();
             if (was_focused)
-                name_input.focus();
-//            name_input.select();
+                me.name_input.focus();
+//            me.name_input.select();
             me.current_task_id = current.id;
 
             if (whichInOrder !== null)
@@ -269,6 +303,10 @@ Window = {
 
         createEmptyTask: function(callback)
         {
+            if (me.update_in_progress)
+            {
+                me.stopPrimingTasks();
+            }
             me.update_in_progress = true;
             Asana.ServerModel.createTask(me.selectedWorkspaceId(),
                 {
@@ -281,8 +319,13 @@ Window = {
                     Asana.ServerModel.logEvent({
                         name: "ChromeExtension-CreateTask-Success"
                     });
-                    callback(task);
                     me.update_in_progress = false;
+
+                    // add the task to the bottom of the stack
+                    me.tasks_today.push(task);
+                    console.log(task);
+                    callback(task);
+                    me.startPrimingTasks();
                 },
                 function(response) {
                     // Failure. :( Show error, but leave form available for retry.
@@ -291,12 +334,18 @@ Window = {
                     });
                     me.showError(response.errors[0].message);
                     me.update_in_progress = false;
+                    me.startPrimingTasks();
                 });
         },
 
-        updateTask: function(id, newData)
+        updateTask: function(id, newData, position)
         {
+            if (me.update_in_progress)
+            {
+                me.stopPrimingTasks();
+            }
             me.update_in_progress = true;
+
             Asana.ServerModel.updateTask(id,
                 newData,
                 function(task) {
@@ -305,6 +354,9 @@ Window = {
                         name: "ChromeExtension-UpdateTask-Success"
                     });
                     me.update_in_progress = false;
+//                    me.tasks_today[position] = task;
+                    me.startPrimingTasks();
+                    console.log(task);
                     return task;
                 },
                 function(response) {
@@ -314,13 +366,18 @@ Window = {
                     });
                     me.showError(response.errors[0].message);
                     me.update_in_progress = false;
+                    me.startPrimingTasks();
                     return null;
                 });
         },
 
-        completeTask: function(id)
+        completeTask: function(id, order)
         {
-            $('#name_input').prop('disabled', true);
+            me.disableInput();
+//            $('#name_input').prop('disabled', true);
+
+            // this selects the next task:
+            /*
             var taskInOrder = 0;
             me.tasks_today.forEach(function(task) {
                 if (task.id != id)
@@ -329,12 +386,22 @@ Window = {
                     taskInOrder++;
                 }
             });
-            return me.updateTask(id, { completed: true });
+            */
+
+            // this selects the first one, always:
+            if (me.tasks_today[0].id != id)
+                me.setCurrent(me.tasks_today[0], 0);
+
+            // remove this locally too:
+            me.tasks_today.splice(order, 1);
+
+            return me.updateTask(id, { completed: true }, null);
         },
 
         showError: function(message) {
-            console.log("Error: " + message);
+            console.log("Error: ", message);
             $("#error").css("display", "inline-block");
+            this.disableInput();
         },
 
         hideError: function() {
@@ -395,7 +462,7 @@ Window = {
 //                Asana.ServerModel.refreshCache();
                 console.log("options to save: ", me.options);
                 Asana.ServerModel.saveOptions(me.options, function() {
-                    Asana.ServerModel.startPrimingCache();
+                    Asana.ServerModel.startPrimingTasks();
 //                    setTimeout(function(){
                         me.showView("add");
                         me.showUi(true);

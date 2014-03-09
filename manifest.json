@@ -1,10 +1,15 @@
 {
     "name": "BeFocused (Asana)",
-    "description": "Stay focused with Asana, by always seeing which task are you working on.",
-    "version": "1.0.1",
+    "description": "Stay focused with Asana, by always seeing which task you are working on.",
+    "version": "1.0.4",
     "author": "Bazyli Brzóska",
     "manifest_version": 2,
     "minimum_chrome_version": "29",
+    "icons": {
+        "128": "icon128.png",
+        "48": "icon48.png",
+        "16": "icon16.png"
+    },
     "app": {
         "background": {
             "persistent": true,
