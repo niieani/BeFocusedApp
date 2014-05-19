@@ -11,10 +11,10 @@ Simple way to allow yourself to really focus on your work. With this app, you'll
 Shows tasks assigned to you, picked for TODAY. Aside from that, you can use it to complete those tasks, or quickly add new ones, that you want to focus on now.
 Navigation within the app is simple, and mirrors full Asana:
 
-``ctrl + enter - completes the task
-up/down arrows - next/previous task
-typing - updates current task's name
-enter - adds new task``
+* ctrl + enter - completes the task
+* up/down arrows - next/previous task
+* typing - updates current task's name
+* enter - adds new task
 
 You will need to provide your API key, available from http://app.asana.com/-/account_api
 
